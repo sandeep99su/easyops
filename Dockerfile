@@ -1,14 +1,27 @@
-# Use a base image with OpenJDK
-FROM openjdk:17-slim
+# Use Maven to build and JDK to run the app
+FROM maven:3.8.5-openjdk-17-slim AS build
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the pre-built JAR file from your GitHub repo into the container
-COPY com.project.rmmserver-0.0.1-SNAPSHOT.jar /app/rmmserver.jar
+# Copy the pom.xml and source files
+COPY pom.xml /app/
+COPY src /app/src/
 
-# Expose the WebSocket server port (assuming 8080)
+# Build the application using Maven
+RUN mvn clean package -DskipTests
+
+# Use a slim JDK image to run the application
+FROM openjdk:17-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the built JAR file from the build stage
+COPY --from=build /app/target/com.project.rmmserver-0.0.1-SNAPSHOT.jar /app/rmmserver.jar
+
+# Expose the WebSocket port (adjust as needed)
 EXPOSE 8080
 
-# Command to run the app
+# Run the JAR file
 CMD ["java", "-jar", "rmmserver.jar"]
